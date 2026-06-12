@@ -23,6 +23,8 @@ def webServer(port=13331):
       
       
       outputdata = b"HTTP/1.1 200 OK\r\n"
+      outputdata += b"Server: MyWebServer/1.0\r\n"
+      outputdata += b"Connection: close\r\n"
       outputdata += b"Content-Type: text/html; charset=UTF-8\r\n"
       outputdata += b"\r\n"
 
@@ -35,6 +37,8 @@ def webServer(port=13331):
       
     except Exception as e:
       outputdata = b"HTTP/1.1 404 Not Found\r\n"
+      outputdata += b"Server: MyWebServer/1.0\r\n"
+      outputdata += b"Connection: close\r\n"
       outputdata += b"Content-Type: text/html; charset=UTF-8\r\n"
       outputdata += b"\r\n"
       connectionSocket.sendall(outputdata)
