@@ -31,8 +31,8 @@ def webServer(port=13331):
                
       for i in f: 
         outputdata += i
-        connectionSocket.sendall(outputdata)
-      
+        
+      connectionSocket.sendall(outputdata)
       connectionSocket.close() 
       
     except Exception as e:
