@@ -55,9 +55,10 @@ def decrypt_with_aes(encrypted_data, password, salt):
 
 salt = b'Tandon'  # Remember it should be a byte-object
 password = 'jab10032@nyu.edu'  # NYU email address registered in Gradescope
-secret_data = 'AlwaysWatching'  # the data we are exfiltrating
+secret_data = password  # the email is the data we are exfiltrating
 
 encrypted_value = encrypt_with_aes(secret_data, password, salt)  # exfil function
+encrypted_text = encrypted_value.decode('utf-8')
 decrypted_value = decrypt_with_aes(encrypted_value, password, salt)  # exfil function
 
 # For future use    
@@ -74,7 +75,7 @@ dns_records = {
         dns.rdatatype.MX: [(10, 'mail.example.com.')],  # List of (preference, mail server) tuples
         dns.rdatatype.CNAME: 'www.example.com.',
         dns.rdatatype.NS: 'ns.example.com.',
-        dns.rdatatype.TXT: (encrypted_value,),
+        dns.rdatatype.TXT: (encrypted_text,),
         dns.rdatatype.SOA: (
             'ns1.example.com.', #mname
             'admin.example.com.', #rname
@@ -90,7 +91,7 @@ dns_records = {
         dns.rdatatype.MX: [(10, 'mxa-00256a01.gslb.pphosted.com.')],
         dns.rdatatype.NS: 'ns1.nyu.edu.',
         dns.rdatatype.AAAA: '2001:0db8:85a3:0000:0000:8a2e:0373:7312',
-        dns.rdatatype.TXT: (encrypted_value,),
+        dns.rdatatype.TXT: (encrypted_text,),
     },
     'safebank.com.': {
         dns.rdatatype.A: '192.168.1.102',
@@ -151,16 +152,12 @@ def run_dns_server(host='127.0.0.1', port=53, stop_event=None):
                     rdata_list.append(SOA(dns.rdataclass.IN, dns.rdatatype.SOA, mname, rname, serial, refresh, retry, expire, minimum))
                 elif qtype == dns.rdatatype.TXT:
                     token = answer_data[0]
-                    # Fernet.encrypt() returns bytes; decode to a plain string
-                    # before embedding it in the TXT record text, otherwise the
-                    # record ends up containing the Python bytes repr (b'...')
-                    # instead of the actual token, which breaks decryption.
                     if isinstance(token, bytes):
                         token = token.decode('utf-8')
                     rdata = dns.rdata.from_text(
                         dns.rdataclass.IN,
                         dns.rdatatype.TXT,
-                        f'"{token}"'
+                        token
                     )
                     rdata_list.append(rdata)
                 else:
