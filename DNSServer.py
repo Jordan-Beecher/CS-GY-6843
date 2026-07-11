@@ -49,7 +49,15 @@ def decrypt_with_aes(encrypted_data, password, salt):
     key = generate_aes_key(password, salt)
     f = Fernet(key)
     if isinstance(encrypted_data, str):
-        encrypted_data = encrypted_data.encode('utf-8')
+        # Support string-cast Fernet tokens like "b'...'", as required
+        # by the TXT-record format for this assignment.
+        encrypted_data = encrypted_data.strip()
+        if (encrypted_data.startswith("b'") and encrypted_data.endswith("'")) or (
+            encrypted_data.startswith('b"') and encrypted_data.endswith('"')
+        ):
+            encrypted_data = ast.literal_eval(encrypted_data)
+        else:
+            encrypted_data = encrypted_data.encode('utf-8')
     decrypted_data = f.decrypt(encrypted_data)
     return decrypted_data.decode('utf-8')
 
@@ -58,7 +66,9 @@ password = 'jab10032@nyu.edu'  # NYU email address registered in Gradescope
 secret_data = 'AlwaysWatching'  # the data we are exfiltrating
 
 encrypted_value = encrypt_with_aes(secret_data, password, salt)  # exfil function
-encrypted_text = encrypted_value.decode('utf-8')
+encrypted_text = str(encrypted_value)
+# Keep the encrypted token as a string cast, not decoded bytes.
+# This will produce the correct TXT token format for Gradescope.
 decrypted_value = decrypt_with_aes(encrypted_value, password, salt)  # exfil function
 
 # For future use    
@@ -152,11 +162,10 @@ def run_dns_server(host='127.0.0.1', port=53, stop_event=None):
                     rdata_list.append(SOA(dns.rdataclass.IN, dns.rdatatype.SOA, mname, rname, serial, refresh, retry, expire, minimum))
                 elif qtype == dns.rdatatype.TXT:
                     token = answer_data[0]
+                    # Do not decode the encrypted token. Store the encrypted
+                    # Fernet token as a string cast, not the decrypted value.
                     if isinstance(token, bytes):
-                        token = token.decode('utf-8')
-                    # TXT records must contain a quoted string value.
-                    # Use rdata.from_text with a quoted token so the wire format
-                    # encodes the string correctly.
+                        token = str(token)
                     rdata = dns.rdata.from_text(
                         dns.rdataclass.IN,
                         dns.rdatatype.TXT,
