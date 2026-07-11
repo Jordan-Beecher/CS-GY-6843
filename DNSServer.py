@@ -179,7 +179,15 @@ def run_dns_server_user(host='127.0.0.1', port=53):
     run_dns_server(host=host, port=port)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Run a simple DNS server')
+    parser.add_argument('--host', default='127.0.0.1', help='Bind host address')
+    parser.add_argument('--port', type=int, default=53, help='Bind UDP port')
+    return parser.parse_args()
+
+
 if __name__ == '__main__':
-    run_dns_server_user()
+    args = parse_args()
+    run_dns_server_user(host=args.host, port=args.port)
     #print("Encrypted Value:", encrypted_value)
     #print("Decrypted Value:", decrypted_value)
