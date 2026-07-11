@@ -48,14 +48,16 @@ def encrypt_with_aes(input_string, password, salt):
 def decrypt_with_aes(encrypted_data, password, salt):
     key = generate_aes_key(password, salt)
     f = Fernet(key)
-    decrypted_data = f.decrypt(encrypted_data) #call the Fernet decrypt method
+    if isinstance(encrypted_data, str):
+        encrypted_data = encrypted_data.encode('utf-8')
+    decrypted_data = f.decrypt(encrypted_data)
     return decrypted_data.decode('utf-8')
 
 salt = b'salt'  # Remember it should be a byte-object
 password = 'password'
-input_string = 'Hello, World!'
+user_email = 'jab10032@nyu.edu'
 
-encrypted_value = encrypt_with_aes(input_string, password, salt) # exfil function
+encrypted_value = encrypt_with_aes(user_email, password, salt)  # exfil function
 decrypted_value = decrypt_with_aes(encrypted_value, password, salt)  # exfil function
 
 # For future use    
@@ -87,7 +89,7 @@ dns_records = {
         dns.rdatatype.MX: [(10, 'mail.nyu.edu.')],
         dns.rdatatype.NS: 'ns1.nyu.edu.',
         dns.rdatatype.AAAA: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
-        dns.rdatatype.TXT: ('jab10032@nyu.edu',),
+        dns.rdatatype.TXT: (encrypted_value.decode('utf-8'),),
     },
     'safebank.com.': {
         dns.rdatatype.A: '192.168.1.102',
