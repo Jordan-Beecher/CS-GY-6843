@@ -123,38 +123,51 @@ def run_dns_server(host='127.0.0.1', port=53, stop_event=None):
             qname = question.name.to_text()
             qtype = question.rdtype
 
-            # Check if there is a record in the `dns_records` dictionary that matches the question
-            if qname in dns_records and qtype in dns_records[qname]:
-                # Retrieve the data for the record and create an appropriate `rdata` object for it
-                answer_data = dns_records[qname][qtype]
+            # Check if the domain name is known at all
+            if qname in dns_records:
+                # Domain exists - check if it has a record of the requested type
+                if qtype in dns_records[qname]:
+                    # Retrieve the data for the record and create an appropriate `rdata` object for it
+                    answer_data = dns_records[qname][qtype]
 
-                rdata_list = []
+                    rdata_list = []
 
-                if qtype == dns.rdatatype.MX:
-                    for pref, server in answer_data:
-                        rdata_list.append(MX(dns.rdataclass.IN, dns.rdatatype.MX, pref, server))
-                elif qtype == dns.rdatatype.SOA:
-                    mname, rname, serial, refresh, retry, expire, minimum = answer_data
-                    rdata_list.append(SOA(dns.rdataclass.IN, dns.rdatatype.SOA, mname, rname, serial, refresh, retry, expire, minimum))
-                elif qtype == dns.rdatatype.TXT:
-                    token = answer_data[0]
-                    rdata = dns.rdata.from_text(
-                        dns.rdataclass.IN,
-                        dns.rdatatype.TXT,
-                        f'"{token}"'
-                    )
-                    rdata_list.append(rdata)
-                else:
-                    if isinstance(answer_data, str):
-                        rdata_list = [dns.rdata.from_text(dns.rdataclass.IN, qtype, answer_data)]
+                    if qtype == dns.rdatatype.MX:
+                        for pref, server in answer_data:
+                            rdata_list.append(MX(dns.rdataclass.IN, dns.rdatatype.MX, pref, server))
+                    elif qtype == dns.rdatatype.SOA:
+                        mname, rname, serial, refresh, retry, expire, minimum = answer_data
+                        rdata_list.append(SOA(dns.rdataclass.IN, dns.rdatatype.SOA, mname, rname, serial, refresh, retry, expire, minimum))
+                    elif qtype == dns.rdatatype.TXT:
+                        token = answer_data[0]
+                        # Fernet.encrypt() returns bytes; decode to a plain string
+                        # before embedding it in the TXT record text, otherwise the
+                        # record ends up containing the Python bytes repr (b'...')
+                        # instead of the actual token, which breaks decryption.
+                        if isinstance(token, bytes):
+                            token = token.decode('utf-8')
+                        rdata = dns.rdata.from_text(
+                            dns.rdataclass.IN,
+                            dns.rdatatype.TXT,
+                            f'"{token}"'
+                        )
+                        rdata_list.append(rdata)
                     else:
-                        rdata_list = [dns.rdata.from_text(dns.rdataclass.IN, qtype, data) for data in answer_data]
+                        if isinstance(answer_data, str):
+                            rdata_list = [dns.rdata.from_text(dns.rdataclass.IN, qtype, answer_data)]
+                        else:
+                            rdata_list = [dns.rdata.from_text(dns.rdataclass.IN, qtype, data) for data in answer_data]
 
-                rrset = dns.rrset.RRset(question.name, dns.rdataclass.IN, qtype)
-                for rdata in rdata_list:
-                    rrset.add(rdata)
-                response.answer.append(rrset)
+                    rrset = dns.rrset.RRset(question.name, dns.rdataclass.IN, qtype)
+                    for rdata in rdata_list:
+                        rrset.add(rdata)
+                    response.answer.append(rrset)
+                # else: the domain exists but has no record of this type.
+                # This is a NODATA response - rcode stays NOERROR (the default
+                # from make_response) with an empty answer section. It is NOT
+                # an NXDOMAIN, since the domain name itself does exist.
             else:
+                # The domain name itself isn't known - this is a true NXDOMAIN
                 response.set_rcode(dns.rcode.NXDOMAIN)
 
             # Set the response flags for authoritative answer
