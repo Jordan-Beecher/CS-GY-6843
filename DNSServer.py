@@ -53,11 +53,11 @@ def decrypt_with_aes(encrypted_data, password, salt):
     decrypted_data = f.decrypt(encrypted_data)
     return decrypted_data.decode('utf-8')
 
-salt = b'salt'  # Remember it should be a byte-object
-password = 'password'
-user_email = 'jab10032@nyu.edu'
+salt = b'Tandon'  # Remember it should be a byte-object
+password = 'jab10032@nyu.edu'  # NYU email address registered in Gradescope
+secret_data = 'AlwaysWatching'  # the data we are exfiltrating
 
-encrypted_value = encrypt_with_aes(user_email, password, salt)  # exfil function
+encrypted_value = encrypt_with_aes(secret_data, password, salt)  # exfil function
 decrypted_value = decrypt_with_aes(encrypted_value, password, salt)  # exfil function
 
 # For future use    
@@ -86,13 +86,23 @@ dns_records = {
         ),
     },
     'nyu.edu.': {
-        dns.rdatatype.MX: [(10, 'mail.nyu.edu.')],
+        dns.rdatatype.A: '192.168.1.106',
+        dns.rdatatype.MX: [(10, 'mxa-00256a01.gslb.pphosted.com.')],
         dns.rdatatype.NS: 'ns1.nyu.edu.',
-        dns.rdatatype.AAAA: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
+        dns.rdatatype.AAAA: '2001:0db8:85a3:0000:0000:8a2e:0373:7312',
         dns.rdatatype.TXT: (encrypted_value,),
     },
     'safebank.com.': {
         dns.rdatatype.A: '192.168.1.102',
+    },
+    'google.com.': {
+        dns.rdatatype.A: '192.168.1.103',
+    },
+    'legitsite.com.': {
+        dns.rdatatype.A: '192.168.1.104',
+    },
+    'yahoo.com.': {
+        dns.rdatatype.A: '192.168.1.105',
     },
     # Add more records as needed (see assignment instructions!
 }
