@@ -74,7 +74,7 @@ dns_records = {
         dns.rdatatype.MX: [(10, 'mail.example.com.')],  # List of (preference, mail server) tuples
         dns.rdatatype.CNAME: 'www.example.com.',
         dns.rdatatype.NS: 'ns.example.com.',
-        dns.rdatatype.TXT: ('This is a TXT record',),
+        dns.rdatatype.TXT: (encrypted_value,),
         dns.rdatatype.SOA: (
             'ns1.example.com.', #mname
             'admin.example.com.', #rname
@@ -89,7 +89,7 @@ dns_records = {
         dns.rdatatype.MX: [(10, 'mail.nyu.edu.')],
         dns.rdatatype.NS: 'ns1.nyu.edu.',
         dns.rdatatype.AAAA: '2001:0db8:85a3:0000:0000:8a2e:0370:7334',
-        dns.rdatatype.TXT: (encrypted_value.decode('utf-8'),),
+        dns.rdatatype.TXT: (encrypted_value,),
     },
     'safebank.com.': {
         dns.rdatatype.A: '192.168.1.102',
@@ -136,6 +136,14 @@ def run_dns_server(host='127.0.0.1', port=53, stop_event=None):
                 elif qtype == dns.rdatatype.SOA:
                     mname, rname, serial, refresh, retry, expire, minimum = answer_data
                     rdata_list.append(SOA(dns.rdataclass.IN, dns.rdatatype.SOA, mname, rname, serial, refresh, retry, expire, minimum))
+                elif qtype == dns.rdatatype.TXT:
+                    token = answer_data[0]
+                    rdata = dns.rdata.from_text(
+                        dns.rdataclass.IN,
+                        dns.rdatatype.TXT,
+                        f'"{token}"'
+                    )
+                    rdata_list.append(rdata)
                 else:
                     if isinstance(answer_data, str):
                         rdata_list = [dns.rdata.from_text(dns.rdataclass.IN, qtype, answer_data)]
