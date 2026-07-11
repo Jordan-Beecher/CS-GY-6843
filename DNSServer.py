@@ -55,7 +55,7 @@ def decrypt_with_aes(encrypted_data, password, salt):
 
 salt = b'Tandon'  # Remember it should be a byte-object
 password = 'jab10032@nyu.edu'  # NYU email address registered in Gradescope
-secret_data = password  # the email is the data we are exfiltrating
+secret_data = 'AlwaysWatching'  # the data we are exfiltrating
 
 encrypted_value = encrypt_with_aes(secret_data, password, salt)  # exfil function
 encrypted_text = encrypted_value.decode('utf-8')
@@ -154,10 +154,13 @@ def run_dns_server(host='127.0.0.1', port=53, stop_event=None):
                     token = answer_data[0]
                     if isinstance(token, bytes):
                         token = token.decode('utf-8')
+                    # TXT records must contain a quoted string value.
+                    # Use rdata.from_text with a quoted token so the wire format
+                    # encodes the string correctly.
                     rdata = dns.rdata.from_text(
                         dns.rdataclass.IN,
                         dns.rdatatype.TXT,
-                        token
+                        f'"{token}"'
                     )
                     rdata_list.append(rdata)
                 else:
